@@ -1,3 +1,15 @@
+---
+title: Advanced RAG Knowledge Assistant
+emoji: 🔎
+colorFrom: blue
+colorTo: purple
+sdk: gradio
+sdk_version: 5.38.0
+app_file: main.py
+pinned: false
+license: mit
+---
+
 # Advanced RAG Knowledge Assistant
 
 <p align="center">

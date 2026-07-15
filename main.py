@@ -1,4 +1,3 @@
-from streamlit.proto import openmetrics_data_model_pb2
 import traceback
 import gradio as gr
 from langchain_huggingface import HuggingFaceEmbeddings
@@ -60,16 +59,6 @@ judge_client = OpenAI(
     },
 )
 
-judge_llm = ChatOllama(
-    model="lukaspetrik/gemma3-tools:4b",
-    temperature=0
-)
-
-local_llm = ChatOllama(
-    model="lukaspetrik/gemma3-tools:4b",
-    temperature=0
-)
-
 client = OpenAI(
     api_key=os.getenv("OPENROUTER_API_KEY"),
     base_url="https://openrouter.ai/api/v1"
@@ -91,7 +80,7 @@ TASK_MODELS = {
     "answer_generation": ModelConfig( "gemini","gemini-3.5-flash"),
     "self_correction": ModelConfig("gemini","gemini-3.1-flash-lite"),
 
-    "context_compression": ModelConfig("ollama","lukaspetrik/gemma3-tools:4b"),
+    "context_compression": ModelConfig("groq","llama-3.3-70b-versatile"),
     "self_evaluation": ModelConfig("groq","openai/gpt-oss-120b"),
     "verification": ModelConfig("gemini","gemini-3.1-flash-lite"),
     "llm_judge": ModelConfig("groq","qwen/qwen3-32b"),
@@ -1097,13 +1086,12 @@ def detect_ambiguity(question):
 
     try:
 
-        response = local_llm.invoke(
-            prompt
+        response = call_llm(
+            task="verification",
+            prompt=prompt
         )
 
-        return _extract_json_object(
-            response.content
-        )
+        return _extract_json_object(response)
 
     except Exception:
 
@@ -1757,11 +1745,14 @@ def decompose_question(question):
     Return one per line.
     """
 
-    response = local_llm.invoke(prompt)
+    response = call_llm(
+        task="multi_query",
+        prompt=prompt
+    )
 
     return [
         q.strip()
-        for q in response.content.split("\n")
+        for q in response.split("\n")
         if q.strip()
     ]
 
@@ -2272,8 +2263,10 @@ def compress_context(question,docs):
     Return concise notes.
     """
 
-    response = judge_llm.invoke(prompt)
-    return response.content
+    return call_llm(
+        task="context_compression",
+        prompt=prompt
+    )
 
 def rewrite_query(query):
 
@@ -2409,9 +2402,10 @@ Sub Answers:
 Combine into one answer.
 """
 
-    response = local_llm.invoke(prompt)
-
-    return response.content
+    return call_llm(
+        task="answer_generation",
+        prompt=prompt
+    )
 
 def summarize_conversation():
 
@@ -2437,10 +2431,11 @@ def summarize_conversation():
     Return concise summary.
     """
 
-    response = local_llm.invoke(prompt)
-
     conversation_summary = (
-        response.content
+        call_llm(
+            task="conversation_summary",
+            prompt=prompt
+        )
     )
 
 def print_retrieval_debug(docs):
@@ -2551,4 +2546,8 @@ with gr.Blocks() as demo:
     )
 
 if __name__ == "__main__":
-    demo.launch()
+    port = int(os.environ.get("PORT", 7860))
+    demo.launch(
+        server_name="0.0.0.0",
+        server_port=port
+    )

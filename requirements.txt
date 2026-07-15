@@ -1,6 +1,8 @@
 gradio
 python-dotenv
 openai
+google-genai
+groq
 langchain-community
 langchain-text-splitters
 langchain-chroma
