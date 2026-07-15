@@ -760,9 +760,17 @@ splitter = MarkdownTextSplitter(
     chunk_overlap=CHUNK_OVERLAP
 )
 
-embedding = HuggingFaceEmbeddings(
-        model_name="BAAI/bge-small-en-v1.5"
-    )
+embedding = None
+
+def get_embedding_model():
+    global embedding
+
+    if embedding is None:
+        embedding = HuggingFaceEmbeddings(
+            model_name="BAAI/bge-small-en-v1.5"
+        )
+
+    return embedding
 
 def rewrite_chunk(text):
 
@@ -919,7 +927,7 @@ def process_document(files):
 
         vectordb = Chroma.from_documents(
             documents=chunks,
-            embedding=embedding,
+            embedding=get_embedding_model(),
         )
 
         knowledge_bases["default"] = vectordb
@@ -1182,9 +1190,17 @@ def reciprocal_rank_fusion(vector_docs,bm25_docs,k=60):
         for item in ranked
     ]
 
-reranker = CrossEncoder(
-    "cross-encoder/ms-marco-MiniLM-L-6-v2"
-)
+reranker = None
+
+def get_reranker():
+    global reranker
+
+    if reranker is None:
+        reranker = CrossEncoder(
+            "cross-encoder/ms-marco-MiniLM-L-6-v2"
+        )
+
+    return reranker
 
 def rerank_documents(query, docs, top_k=3):
     if not docs:
@@ -1195,7 +1211,7 @@ def rerank_documents(query, docs, top_k=3):
         for doc in docs
     ]
 
-    scores = reranker.predict(pairs)
+    scores = get_reranker().predict(pairs)
 
     ranked = sorted(
         zip(docs, scores),
