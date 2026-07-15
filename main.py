@@ -1,15 +1,12 @@
 from streamlit.proto import openmetrics_data_model_pb2
 import traceback
 import gradio as gr
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import MarkdownTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_ollama import ChatOllama
 from langchain_community.document_loaders import Docx2txtLoader
 from rank_bm25 import BM25Okapi
-from sentence_transformers import CrossEncoder
 import plotly.express as px
 import os
 import json
@@ -766,6 +763,8 @@ def get_embedding_model():
     global embedding
 
     if embedding is None:
+        from langchain_huggingface import HuggingFaceEmbeddings
+
         embedding = HuggingFaceEmbeddings(
             model_name="BAAI/bge-small-en-v1.5"
         )
@@ -1196,6 +1195,8 @@ def get_reranker():
     global reranker
 
     if reranker is None:
+        from sentence_transformers import CrossEncoder
+
         reranker = CrossEncoder(
             "cross-encoder/ms-marco-MiniLM-L-6-v2"
         )
