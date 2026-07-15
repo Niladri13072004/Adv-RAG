@@ -1,12 +1,15 @@
 from streamlit.proto import openmetrics_data_model_pb2
 import traceback
 import gradio as gr
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import MarkdownTextSplitter
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_ollama import ChatOllama
 from langchain_community.document_loaders import Docx2txtLoader
 from rank_bm25 import BM25Okapi
+from sentence_transformers import CrossEncoder
 import plotly.express as px
 import os
 import json
@@ -757,19 +760,9 @@ splitter = MarkdownTextSplitter(
     chunk_overlap=CHUNK_OVERLAP
 )
 
-embedding = None
-
-def get_embedding_model():
-    global embedding
-
-    if embedding is None:
-        from langchain_huggingface import HuggingFaceEmbeddings
-
-        embedding = HuggingFaceEmbeddings(
-            model_name="BAAI/bge-small-en-v1.5"
-        )
-
-    return embedding
+embedding = HuggingFaceEmbeddings(
+        model_name="BAAI/bge-small-en-v1.5"
+    )
 
 def rewrite_chunk(text):
 
@@ -926,7 +919,7 @@ def process_document(files):
 
         vectordb = Chroma.from_documents(
             documents=chunks,
-            embedding=get_embedding_model(),
+            embedding=embedding,
         )
 
         knowledge_bases["default"] = vectordb
@@ -1189,19 +1182,9 @@ def reciprocal_rank_fusion(vector_docs,bm25_docs,k=60):
         for item in ranked
     ]
 
-reranker = None
-
-def get_reranker():
-    global reranker
-
-    if reranker is None:
-        from sentence_transformers import CrossEncoder
-
-        reranker = CrossEncoder(
-            "cross-encoder/ms-marco-MiniLM-L-6-v2"
-        )
-
-    return reranker
+reranker = CrossEncoder(
+    "cross-encoder/ms-marco-MiniLM-L-6-v2"
+)
 
 def rerank_documents(query, docs, top_k=3):
     if not docs:
@@ -1212,7 +1195,7 @@ def rerank_documents(query, docs, top_k=3):
         for doc in docs
     ]
 
-    scores = get_reranker().predict(pairs)
+    scores = reranker.predict(pairs)
 
     ranked = sorted(
         zip(docs, scores),
